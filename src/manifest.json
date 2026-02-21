@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Bookmate Downloader",
+  "version": "1.0",
+  "description": "Download Bookmate books as EPUB files directly from your browser.",
+  "permissions": [
+    "cookies",
+    "downloads",
+    "activeTab",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://*.bookmate.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.bookmate.com/*"
+      ],
+      "js": ["content.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Bookmate Downloader"
+  }
+}

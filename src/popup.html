@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bookmate Downloader</title>
+  <style>
+    :root {
+      --accent:      #6c63ff;
+      --accent-dark: #574fd6;
+      --bg:          #1a1a2e;
+      --surface:     #0f0f23;
+      --border:      #3a3a5c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      background: var(--bg);
+      color: #e0e0e0;
+      width: 320px;
+      min-height: 120px;
+      padding: 16px;
+    }
+
+    h1 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h1 span.logo { font-size: 20px; }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: #a0a0b0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 5px;
+    }
+
+    .options { margin-top: 12px; display: flex; align-items: center; gap: 8px; }
+
+    .options.hidden { display: none; }
+
+    .options input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; }
+    .options label {
+      font-size: 12px;
+      text-transform: none;
+      letter-spacing: 0;
+      color: #c0c0d0;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    button#download-btn {
+      margin-top: 14px;
+      width: 100%;
+      padding: 9px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+
+    button#download-btn:hover:not(:disabled) { background: var(--accent-dark); }
+    button#download-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #status-box {
+      margin-top: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 11px;
+      line-height: 1.6;
+      max-height: 130px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    #status-box.visible { display: block; }
+
+    .log-line { padding: 1px 0; }
+    .log-line.error { color: #ff6b6b; }
+    .log-line.success { color: #6bffb8; }
+    .log-line.info { color: #c0c0d0; }
+
+    .progress-bar-wrap {
+      margin-top: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      height: 6px;
+      display: none;
+      overflow: hidden;
+    }
+
+    .progress-bar-wrap.visible { display: block; }
+
+    #progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 0.3s;
+      border-radius: 4px;
+    }
+
+    .choice-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .choice-btn {
+      flex: 1;
+      padding: 5px 8px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .choice-btn:hover { background: var(--accent-dark); }
+  </style>
+</head>
+<body>
+  <h1><span class="logo">📚</span> Bookmate Downloader</h1>
+
+  <div class="options hidden" id="strip-css-row">
+    <input type="checkbox" id="strip-css" />
+    <label for="strip-css">Strip CSS (smaller EPUB, use Calibre for styling)</label>
+  </div>
+
+  <div class="options hidden" id="max-bitrate-row">
+    <input type="checkbox" id="max-bitrate" checked />
+    <label for="max-bitrate">Max bit rate (higher quality, larger file)</label>
+  </div>
+
+  <button id="download-btn">Download EPUB</button>
+
+  <div class="progress-bar-wrap" id="progress-wrap">
+    <div id="progress-bar"></div>
+  </div>
+
+  <div id="status-box"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
