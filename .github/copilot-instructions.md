@@ -121,7 +121,7 @@ Every algorithm is implemented from scratch using only browser-native APIs:
 - `key` = `base64ToBytes(secret)` → raw AES key bytes
 - `iv` = first 16 bytes of `new Uint8Array(intArray)`
 - `body` = remaining bytes
-- Decrypt with AES-CBC, strip PKCS#7 padding (last byte = pad length)
+- Decrypt with AES-CBC
 
 ### Book ID & URL types
 - Regular book URL: `https://bookmate.com/books/{bookid}` — `bookType = BookType.BOOK`

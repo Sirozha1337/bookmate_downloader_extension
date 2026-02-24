@@ -14,7 +14,7 @@ export async function decryptValue(secret, intArray) {
   //   key  = base64.b64decode(secret)
   //   iv   = data[:16]
   //   data = data[16:]
-  //   plaintext = AES_CBC.decrypt(data), strip PKCS#7 pad
+  //   plaintext = AES_CBC.decrypt(data)
   const raw  = new Uint8Array(intArray);
   const iv   = raw.slice(0, 16);
   const body = raw.slice(16);
@@ -28,8 +28,7 @@ export async function decryptValue(secret, intArray) {
   );
   const decryptedBuf = await crypto.subtle.decrypt({ name: 'AES-CBC', iv }, key, body);
   const decrypted = new Uint8Array(decryptedBuf);
-  const padSize   = decrypted[decrypted.length - 1]; // PKCS#7
-  return decrypted.slice(0, decrypted.length - padSize);
+  return decrypted;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
