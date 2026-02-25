@@ -52,6 +52,47 @@ async function downloadContentFiles(items, baseUrl, onProgress, pctStart, pctEnd
   return contentFiles;
 }
 
+const REQUIRED_META_NS = [
+  'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"',
+  'xmlns:opf="http://www.idpf.org/2007/opf"',
+  'xmlns:dcterms="http://purl.org/dc/terms/"',
+  'xmlns:calibre="http://calibre.kovidgoyal.net/2009/metadata"',
+  'xmlns:dc="http://purl.org/dc/elements/1.1/"',
+];
+
+/**
+ * Ensure the <metadata> element in an OPF file carries all required namespace
+ * declarations.  Missing ones are injected as extra attributes.  Returns a
+ * new Uint8Array (or the original if nothing was missing).
+ */
+function fixOpfMetadata(opfBytes) {
+  const dec = new TextDecoder('utf-8');
+  let text = dec.decode(opfBytes);
+  const fixed = text.replace(/<metadata\b([^>]*)>/i, (match, attrs) => {
+    const missing = REQUIRED_META_NS.filter((attr) => !match.includes(attr.split('=')[0]));
+    if (!missing.length) return match;
+    return `<metadata${attrs} ${missing.join(' ')}>`;
+  });
+  return fixed === text ? opfBytes : ENC.encode(fixed);
+}
+
+/**
+ * Fix HTML content files to be valid XHTML as required by EPUB readers.
+ * Replaces the HTML doctype with an XML declaration and adds XHTML namespace
+ * attributes to the <html> opening tag.  Mutates the map in-place.
+ */
+function fixHtmlFiles(contentFiles) {
+  const dec = new TextDecoder('utf-8');
+  for (const fname of Object.keys(contentFiles)) {
+    if (!fname.match(/\.x?html$/i)) continue;
+    let text = dec.decode(contentFiles[fname]);
+    text = text.replace(/<!DOCTYPE\s+html[^>]*>/i, "<?xml version='1.0' encoding='utf-8'?>");
+    text = text.replace(/<html\b[^>]*>/i, '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">');
+    text = text.replace(/<(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)(\b[^>]*)(?<!\/)>/gi, '<$1$2/>');
+    contentFiles[fname] = ENC.encode(text);
+  }
+}
+
 /** Zero out every CSS file in a content-file map (mutates in-place). */
 function stripCssFiles(contentFiles) {
   for (const fname of Object.keys(contentFiles)) {
@@ -92,6 +133,7 @@ export async function downloadBook(bookid, stripCss, onProgress) {
   // 3. Decrypt metadata
   onProgress('Decrypting metadata…', 25);
   const meta = await decryptMeta(secret, await metaResp.json());
+  meta.opf = fixOpfMetadata(meta.opf);
 
   // 4. Parse OPF manifest → content file list
   onProgress('Parsing OPF manifest…', 35);
@@ -102,8 +144,10 @@ export async function downloadBook(bookid, stripCss, onProgress) {
   onProgress(`Downloading ${items.length} content files…`, 40);
   const contentFiles = await downloadContentFiles(items, baseUrl, onProgress, 40, 85);
 
-  // 6. Optionally strip CSS
-  if (stripCss) { onProgress('Stripping CSS…', 86); stripCssFiles(contentFiles); }
+  // 6. Fix HTML → XHTML and optionally strip CSS
+  onProgress('Fixing HTML files…', 86);
+  fixHtmlFiles(contentFiles);
+  if (stripCss) { onProgress('Stripping CSS…', 87); stripCssFiles(contentFiles); }
 
   // 7. Assemble EPUB — mimetype MUST be first and MUST be ZIP_STORED (EPUB spec)
   onProgress('Building EPUB…', 90);
@@ -169,10 +213,12 @@ export async function downloadSerial(bookid, stripCss, onProgress) {
 
     const encMetaResp = await fetchWithCookie(`${READER_BASE}/p/api/v5/books/${ep.uuid}/metadata/v4`);
     const meta        = await decryptMeta(secret, await encMetaResp.json());
+    meta.opf = fixOpfMetadata(meta.opf);
     const items       = parseOpfHrefs(new TextDecoder().decode(meta.opf));
     const baseUrl     = `${READER_BASE}/p/a/4/d/${meta.document_uuid}/contents/OEBPS/`;
     const contentFiles = await downloadContentFiles(items, baseUrl, onProgress, pctBase, pctEnd);
 
+    fixHtmlFiles(contentFiles);
     if (stripCss) stripCssFiles(contentFiles);
     episodeData.push({ title: epTitle, meta, contentFiles });
   }
