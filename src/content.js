@@ -294,7 +294,7 @@ function injectButton(bookid, bookType) {
     }
 
     function startDownload(asZip = false) {
-      port.postMessage({ action: 'download', bookid, bookType, asZip, stripCss, maxBitRate });
+      port.postMessage({ action: 'download', bookid, bookType, asZip, stripCss, maxBitRate, source: window.location.hostname });
     }
 
     port.onMessage.addListener((msg) => {
@@ -400,7 +400,7 @@ function injectButton(bookid, bookType) {
 
     // Kick off: audiobooks check track count first, everything else downloads directly
     if (bookType === BookType.AUDIO) {
-      port.postMessage({ action: 'audiobook-meta', bookid });
+      port.postMessage({ action: 'audiobook-meta', bookid, source: window.location.hostname });
     } else {
       startDownload();
     }
@@ -411,6 +411,7 @@ function injectButton(bookid, bookType) {
 
 // Book-ID regex — keep in sync with popup.js
 // Matches /books/{id}, /serials/{id}, /audiobooks/{id}, /comicbooks/{id}, /series/{id}
+// Works for both bookmate.com and books.yandex.ru (same URL structure)
 const BOOK_ID_RE = /\/(books|serials|audiobooks|comicbooks|series)\/([A-Za-z0-9]{6,12})(?:[\/?#]|$)/;
 
 let pendingObserver = null;
@@ -433,7 +434,7 @@ function handleUrl(url) {
   }[match[1]];
   const bookid = match[2];
 
-  // Comicbooks and series are not yet supported for download
+  // Comicbooks and series are not supported for download
   if (bookType === BookType.COMICBOOK || bookType === BookType.SERIES) return;
 
   // Container may already be in the DOM (e.g. hard navigation directly to a book page)

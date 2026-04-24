@@ -81,7 +81,7 @@ function fixOpfMetadata(opfBytes) {
  * Replaces the HTML doctype with an XML declaration and adds XHTML namespace
  * attributes to the <html> opening tag.  Mutates the map in-place.
  */
-function fixHtmlFiles(contentFiles) {
+export function fixHtmlFiles(contentFiles) {
   const dec = new TextDecoder('utf-8');
   for (const fname of Object.keys(contentFiles)) {
     if (!fname.match(/\.x?html$/i)) continue;
@@ -89,12 +89,13 @@ function fixHtmlFiles(contentFiles) {
     text = text.replace(/<!DOCTYPE\s+html[^>]*>/i, "<?xml version='1.0' encoding='utf-8'?>");
     text = text.replace(/<html\b[^>]*>/i, '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">');
     text = text.replace(/<(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)(\b[^>]*)(?<!\/)>/gi, '<$1$2/>');
+    text = text.replace(/&nbsp;/g, '&#160;');
     contentFiles[fname] = ENC.encode(text);
   }
 }
 
 /** Zero out every CSS file in a content-file map (mutates in-place). */
-function stripCssFiles(contentFiles) {
+export function stripCssFiles(contentFiles) {
   for (const fname of Object.keys(contentFiles)) {
     if (fname.toLowerCase().endsWith('.css')) contentFiles[fname] = new Uint8Array(0);
   }

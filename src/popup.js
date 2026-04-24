@@ -20,6 +20,7 @@ const progressBar    = document.getElementById('progress-bar');
 
 let currentBookId   = null;
 let currentBookType = null;
+let currentSource   = null;
 
 // Variables for zip chunked download
 let pendingFileHandle = null;
@@ -38,7 +39,8 @@ let savedFilename     = '';
 
   const url   = tabs[0]?.url || '';
   // Keep in sync with content.js BOOK_ID_RE
-  const match = url.match(/\/\/(?:[a-z]+\.)?bookmate\.com\/(books|serials|audiobooks|comicbooks|series)\/([A-Za-z0-9]{6,12})(?:[/?#]|$)/);
+  const match = url.match(/\/\/(?:(?:[a-z]+\.)?bookmate\.com|books\.yandex\.ru)\/(books|serials|audiobooks|comicbooks|series)\/([A-Za-z0-9]{6,12})(?:[/?#]|$)/);
+  currentSource = match ? new URL(url).hostname : null;
   currentBookId   = match ? match[2] : null;
   currentBookType = match ? {
     books:      BookType.BOOK,
@@ -236,6 +238,7 @@ async function startAudioDownload(asZip, titlePart = '', authorSfx = '') {
     asZip,
     stripCss:   stripCssCheck.checked,
     maxBitRate: maxBitrateCheck.checked,
+    source:     currentSource,
   });
 }
 
@@ -252,16 +255,17 @@ downloadBtn.addEventListener('click', () => {
   if (currentBookType === BookType.AUDIO) {
     // Check track count first so we can ask about ZIP vs individual files
     downloadBtn.textContent = 'Checking tracks…';
-    ensurePort().postMessage({ action: 'audiobook-meta', bookid: currentBookId });
+    ensurePort().postMessage({ action: 'audiobook-meta', bookid: currentBookId, source: currentSource });
     return;
   }
 
   downloadBtn.textContent = 'Downloading…';
   ensurePort().postMessage({
-    action:   'download',
-    bookid:   currentBookId,
-    bookType: currentBookType,
-    stripCss: stripCssCheck.checked,
+    action:     'download',
+    bookid:     currentBookId,
+    bookType:   currentBookType,
+    stripCss:   stripCssCheck.checked,
     maxBitRate: maxBitrateCheck.checked,
+    source:     currentSource,
   });
 });
