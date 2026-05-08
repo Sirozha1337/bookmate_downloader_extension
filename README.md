@@ -1,5 +1,8 @@
 # Bookmate Downloader
 
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/Sirozha1337/bookmate_downloader_extension?style=for-the-badge&color=orange) ![GitHub all releases](https://img.shields.io/github/downloads/Sirozha1337/bookmate_downloader_extension/total?style=for-the-badge&color=yellow) ![Platform](https://img.shields.io/badge/Platform-Chrome-success?style=for-the-badge&logo=GoogleChrome)
+
+
 A Chrome extension (Manifest V3) that downloads books from [Bookmate](https://bookmate.com) as EPUB files (or audio tracks) directly from your browser — no external tools or scripts required.
 
 Download the file and read on your favourite e-book device or listen to audiobook on PC.
