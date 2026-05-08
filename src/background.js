@@ -6,7 +6,10 @@
 
 import { downloadBook, downloadSerial } from './lib/bookmate.js';
 import { downloadAudiobook, fetchAudiobookMeta } from './lib/audiobook.js';
+import { downloadBookYandex, downloadComicYandex, downloadAudiobookYandex, fetchAudiobookMetaYandex } from './lib/yandex.js';
 import { BookType } from './lib/booktype.js';
+
+const YANDEX_HOST = 'books.yandex.ru';
 
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== 'bookmate-download') return;
@@ -24,10 +27,15 @@ chrome.runtime.onConnect.addListener((port) => {
     // ── audiobook-meta: fetch track count so popup can ask about ZIP vs individual
     if (msg.action === 'audiobook-meta') {
       try {
-        const cookie = await chrome.cookies.get({ url: 'https://bookmate.com', name: 'bms' });
-        if (!cookie) throw new Error('bms cookie not found — please log in to bookmate.com first');
-        const { bookTitle, tracks, titlePart, authorSfx } = await fetchAudiobookMeta(msg.bookid);
-        send('audiobook-meta', { trackCount: tracks.length, title: bookTitle, titlePart, authorSfx });
+        if (msg.source === YANDEX_HOST) {
+          const { bookTitle, tracks, titlePart, authorSfx } = await fetchAudiobookMetaYandex(msg.bookid);
+          send('audiobook-meta', { trackCount: tracks.length, title: bookTitle, titlePart, authorSfx });
+        } else {
+          const cookie = await chrome.cookies.get({ url: 'https://bookmate.com', name: 'bms' });
+          if (!cookie) throw new Error('bms cookie not found — please log in to bookmate.com first');
+          const { bookTitle, tracks, titlePart, authorSfx } = await fetchAudiobookMeta(msg.bookid);
+          send('audiobook-meta', { trackCount: tracks.length, title: bookTitle, titlePart, authorSfx });
+        }
       } catch (err) {
         console.error('[bookmate] Error:', err);
         send('error', { text: err.message });
@@ -37,10 +45,25 @@ chrome.runtime.onConnect.addListener((port) => {
 
     if (msg.action !== 'download') return;
 
-    const { bookid, bookType, stripCss, maxBitRate, asZip = false } = msg;
+    const { bookid, bookType, stripCss, maxBitRate, asZip = false, source } = msg;
 
     try {
-      // Check if user is logged in
+      // ── Yandex Books path ───────────────────────────────────────────────
+      if (source === YANDEX_HOST) {
+        let filename;
+        if (bookType === BookType.BOOK) {
+          filename = await downloadBookYandex(bookid, stripCss, onProgress);
+        } else if (bookType === BookType.AUDIO) {
+          const onZipReady = asZip ? sendBackZipInChunks(port) : null;
+          filename = await downloadAudiobookYandex(bookid, maxBitRate, asZip, onProgress, onZipReady);
+        } else {
+          throw new Error(`Download not supported for type "${bookType}" on books.yandex.ru`);
+        }
+        if (filename != null) send('success', { filename });
+        return;
+      }
+
+      // ── bookmate.com path ───────────────────────────────────────────────
       const cookie = (await chrome.cookies.get({ url: 'https://bookmate.com', name: 'bms' }));
       if (!cookie) throw new Error('bms cookie not found — please log in to bookmate.com first');
 
